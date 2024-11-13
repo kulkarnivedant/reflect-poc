@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+package reflect;
+option go_package = "./service-proto";
+
+
+message TestMessageResponse {
+    string message = 1;
+}
+
+message TestMessageRequest {
+    string message = 1;
+}
+
+message RunMessageRequest {
+    string message = 1;
+    int32 id = 2;
+}
+
+message RunMessageResponse {
+    string message = 1;
+    int32 id = 2;
+    bool success = 3;
+}
+
+message SyncMessageRequest {
+    string message = 1;
+    int32 id = 2;
+}
+
+message SyncMessageResponse {
+    string message = 1;
+    int32 id = 2;
+    bool success = 3;
+}
+
+service TestService {
+    rpc Test(TestMessageRequest) returns (TestMessageResponse) {}
+    rpc TestServerStream(TestMessageRequest) returns (stream TestMessageResponse) {}
+    rpc TestClientStream(stream TestMessageRequest) returns (TestMessageResponse) {}
+    rpc TestBidiStream(stream TestMessageRequest) returns (stream TestMessageResponse) {}
+    rpc Run(RunMessageRequest) returns (RunMessageResponse) {}
+}
+
+service SyncService {
+    rpc Sync(SyncMessageRequest) returns (SyncMessageResponse) {}
+    rpc SyncServerStream(SyncMessageRequest) returns (stream SyncMessageResponse) {}
+    rpc SyncClientStream(stream SyncMessageRequest) returns (SyncMessageResponse) {}
+    rpc SyncBidiStream(stream SyncMessageRequest) returns (stream SyncMessageResponse) {}
+}
