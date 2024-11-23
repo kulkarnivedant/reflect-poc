@@ -14,6 +14,7 @@ type MyTestService struct {
 }
 
 func (s *MyTestService) Test(ctx context.Context, req *service_proto.TestMessageRequest) (*service_proto.TestMessageResponse, error) {
+	fmt.Println("Received: ", req.Message)
 	return &service_proto.TestMessageResponse{
 		Message: "Response from Test method",
 	}, nil
@@ -27,10 +28,13 @@ func (s *MyTestService) TestServerStream(req *service_proto.TestMessageRequest, 
 			return err
 		}
 	}
+
+	// send EOF
 	return nil
 }
 
 func (s *MyTestService) TestClientStream(stream service_proto.TestService_TestClientStreamServer) error {
+	fmt.Println("Received client stream")
 	var messages []string
 	for {
 		req, err := stream.Recv()
@@ -44,6 +48,7 @@ func (s *MyTestService) TestClientStream(stream service_proto.TestService_TestCl
 		}
 		messages = append(messages, req.Message)
 	}
+
 }
 
 func (s *MyTestService) TestBidiStream(stream service_proto.TestService_TestBidiStreamServer) error {

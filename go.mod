@@ -1,24 +1,22 @@
 module github.com/vedantkulkarni/reflect-poc
 
-go 1.22.7
+go 1.23.2
 
-toolchain go1.22.9
+toolchain go1.23.3
 
 require (
+	github.com/eclipse/paho.mqtt.golang v1.5.0
+	go.uber.org/zap v1.27.0
 	google.golang.org/grpc v1.68.0
 	google.golang.org/protobuf v1.35.1
 )
 
 require (
-	github.com/bufbuild/protocompile v0.10.0 // indirect
-	github.com/cncf/xds/go v0.0.0-20240905190251-b4127c9b8d78 // indirect
-	github.com/envoyproxy/go-control-plane v0.13.0 // indirect
-	github.com/envoyproxy/protoc-gen-validate v1.1.0 // indirect
-	github.com/fullstorydev/grpcurl v1.9.1 // indirect
-	github.com/golang/protobuf v1.5.4 // indirect
-	github.com/jhump/protoreflect v1.16.0 // indirect
-	github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10 // indirect
-	go.starlark.net v0.0.0-20240925182052-1207426daebd // indirect
+	github.com/golain-io/mqtt-bridge v0.1.1 // indirect
+	github.com/google/uuid v1.6.0 // indirect
+	github.com/gorilla/websocket v1.5.3 // indirect
+	github.com/stretchr/testify v1.9.0 // indirect
+	go.uber.org/multierr v1.10.0 // indirect
 	golang.org/x/net v0.29.0 // indirect
 	golang.org/x/sync v0.8.0 // indirect
 	golang.org/x/sys v0.25.0 // indirect
