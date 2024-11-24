@@ -4,14 +4,13 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"net"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
-	// bridge "github.com/golain-io/mqtt-bridge"
+	bridge "github.com/golain-io/mqtt-bridge"
 	client "github.com/vedantkulkarni/reflect-poc/client"
 	server "github.com/vedantkulkarni/reflect-poc/server"
 	service_proto "github.com/vedantkulkarni/reflect-poc/service-proto"
@@ -36,11 +35,7 @@ func main() {
 	defer mqttClient.Disconnect(0)
 
 	logger, _ := zap.NewProduction()
-	// netBridge := bridge.NewMQTTNetBridge(mqttClient, logger, "echo-service1")
-	listener, err := net.Listen("tcp", ":1884")
-	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
-	}
+	netBridge := bridge.NewMQTTNetBridge(mqttClient, logger, "echo-service1")
 
 	grpcServer := grpc.NewServer()
 	testService := &server.MyTestService{}
@@ -51,10 +46,9 @@ func main() {
 	reflection.RegisterV1(grpcServer)
 
 	go createClient(os.Args)
-	
 
 	// Add error handling for Serve
-	if err := grpcServer.Serve(listener); err != nil {
+	if err := grpcServer.Serve(netBridge); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}
 
@@ -64,7 +58,7 @@ func main() {
 	<-sigChan
 
 	logger.Info("Shutting down server...")
-	listener.Close()
+	netBridge.Close()
 }
 
 // create a new grpc client to fetch server methods based on grpc reflection
@@ -74,9 +68,8 @@ func createClient(args []string) {
 	fmt.Println("Creating client")
 
 	// GetNewGRPCMQTTClient returns a new grpc client connection and a new mqtt bridge
-	conn, _ := client.GetNewGRPCMQTTConnection("echo-service1")
 
-	reflectionClient := client.NewReflectionClient(conn)
+	reflectionClient := client.NewReflectionClient()
 	switch args[1] {
 	case "unary":
 		reflectionClient.TestUnaryRPC(context.Background())
@@ -86,6 +79,6 @@ func createClient(args []string) {
 		reflectionClient.TestClientStreamRPC(context.Background())
 	case "bidi_stream":
 		reflectionClient.TestBidiStreamRPC(context.Background())
-	}	
+	}
 
 }

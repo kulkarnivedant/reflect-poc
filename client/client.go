@@ -7,25 +7,41 @@ import (
 	"net"
 	"time"
 
+	mqtt "github.com/eclipse/paho.mqtt.golang"
 	bridge "github.com/golain-io/mqtt-bridge"
 	reflection "github.com/vedantkulkarni/reflect-poc/reflection"
+	"go.uber.org/zap"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/resolver"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/dynamicpb"
 )
 
 type ReflectionClient struct {
-	conn   *grpc.ClientConn
-	helper *reflection.GRPCReflectionHelper
+	conn       *grpc.ClientConn
+	mqttClient mqtt.Client
+	helper     *reflection.GRPCReflectionHelper
 }
 
-func NewReflectionClient(conn *grpc.ClientConn) *ReflectionClient {
-	conn, _ = GetNewGRPCMQTTConnection("echo-service1")
+func NewReflectionClient() *ReflectionClient {
+	// Create MQTT client
+	opts := mqtt.NewClientOptions().
+		AddBroker("tcp://localhost:1883").
+		SetClientID("echo-net-client")
+
+	mqttClient := mqtt.NewClient(opts)
+	token := mqttClient.Connect()
+	if token.Wait() && token.Error() != nil {
+		log.Fatal("Failed to connect to MQTT broker:", token.Error())
+	}
+	conn:= GetNewMQTTGRPCBridge(mqttClient, zap.NewExample(), "echo-service1")
+	conn.Connect()
 	return &ReflectionClient{
-		conn:   conn,
-		helper: reflection.NewGRPCReflectionHelper(conn),
+		conn:       conn,
+		mqttClient: mqttClient,
+		helper:     reflection.NewGRPCReflectionHelper(conn),
 	}
 }
 
@@ -312,14 +328,30 @@ func (drs *ReflectionClient) TestRunRPC(ctx context.Context) {
 	fmt.Println("Response:", string(responseJson))
 }
 
-func GetNewGRPCMQTTConnection(bridgID string) (*grpc.ClientConn, *bridge.MQTTNetBridge) {
-	// reflectionBridge := bridge.NewMQTTNetBridge(DRS.mqttClient, otelzap.L().Logger, bridgID)
-	// resolver.Register(reflectionBridge)
+func GetNewMQTTGRPCBridge(mqttClient mqtt.Client, logger *zap.Logger, bridgID string) *grpc.ClientConn {
+	bridge := bridge.NewMQTTNetBridge(mqttClient, logger, bridgID)
+	resolver.Register(bridge)
+	conn, err := grpc.NewClient(
+		// "localhost:1884",
+		"mqtt://"+bridgID,
+		// bridgID,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithContextDialer(func(ctx context.Context, addr string) (net.Conn, error) {
+			fmt.Printf("Dialing %s\n", addr)
+			return bridge.Dial(ctx, addr)
+		}),
+	)
+	if err != nil {
+		log.Fatal("Failed to dial server:", err)
+	}
+	return conn
+
+}
+
+func GetNewGRPCBridge() (*grpc.ClientConn, *bridge.MQTTNetBridge) {
 
 	conn, err := grpc.NewClient(
 		"localhost:1884",
-		// "mqtt://"+bridgID,
-		// bridgID,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithContextDialer(func(ctx context.Context, addr string) (net.Conn, error) {
 			return net.Dial("tcp", addr)
